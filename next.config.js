@@ -1,4 +1,3 @@
-```css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -59,4 +58,4 @@ module.exports = {
   },
   plugins: [],
 };
-```
+
