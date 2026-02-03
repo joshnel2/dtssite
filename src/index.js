@@ -65,10 +65,34 @@ app.get('/setup', async (req, res) => {
 app.get('/auth/microsoft', async (req, res) => {
   try {
     const authUrl = await outlook.getAuthUrl();
+    console.log('Generated Auth URL:', authUrl);
     res.redirect(authUrl);
   } catch (error) {
     console.error('Auth URL Error:', error);
     res.send(getSetupPage('Failed to initiate Microsoft login: ' + error.message));
+  }
+});
+
+// Debug - Show auth URL without redirecting
+app.get('/auth/test', async (req, res) => {
+  try {
+    const authUrl = await outlook.getAuthUrl();
+    res.send(`
+      <html>
+      <head><title>Auth URL Debug</title></head>
+      <body style="font-family: monospace; padding: 20px; word-break: break-all;">
+        <h2>Generated Auth URL:</h2>
+        <p>${authUrl}</p>
+        <hr>
+        <h3>Checking for redirect_uri in URL:</h3>
+        <p>${authUrl.includes('redirect_uri') ? 'YES - redirect_uri is present' : 'NO - redirect_uri is MISSING!'}</p>
+        <hr>
+        <a href="${authUrl}">Click here to test the auth URL</a>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    res.send('Error: ' + error.message);
   }
 });
 
