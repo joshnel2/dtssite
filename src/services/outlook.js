@@ -6,16 +6,33 @@ const config = require('../config');
 
 const TOKEN_FILE = path.join(__dirname, '../../tokens.json');
 
+// Debug: Log what credentials we have (without exposing secrets)
+console.log('Microsoft Config Check:');
+console.log('- Client ID:', config.microsoft.clientId ? `SET (${config.microsoft.clientId.length} chars)` : 'NOT SET');
+console.log('- Client Secret:', config.microsoft.clientSecret ? `SET (${config.microsoft.clientSecret.length} chars)` : 'NOT SET');
+console.log('- Tenant ID:', config.microsoft.tenantId || 'NOT SET');
+console.log('- Redirect URI:', config.microsoft.redirectUri);
+
 // MSAL Configuration
 const msalConfig = {
   auth: {
-    clientId: config.microsoft.clientId,
-    clientSecret: config.microsoft.clientSecret,
-    authority: `https://login.microsoftonline.com/${config.microsoft.tenantId}`,
+    clientId: config.microsoft.clientId || 'not-set',
+    clientSecret: config.microsoft.clientSecret || 'not-set',
+    authority: `https://login.microsoftonline.com/${config.microsoft.tenantId || 'common'}`,
   },
 };
 
-const cca = new msal.ConfidentialClientApplication(msalConfig);
+let cca = null;
+try {
+  if (config.microsoft.clientId && config.microsoft.clientSecret) {
+    cca = new msal.ConfidentialClientApplication(msalConfig);
+    console.log('MSAL client initialized successfully');
+  } else {
+    console.error('MSAL client NOT initialized - missing credentials');
+  }
+} catch (error) {
+  console.error('Failed to initialize MSAL client:', error.message);
+}
 
 // Token storage functions
 function saveTokens(tokens) {
@@ -49,8 +66,16 @@ function isAuthenticated() {
   return tokens && tokens.refreshToken;
 }
 
+// Check if Microsoft is configured
+function isConfigured() {
+  return cca !== null;
+}
+
 // Get auth URL for initial login
 function getAuthUrl() {
+  if (!cca) {
+    throw new Error('Microsoft credentials not configured. Please set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET environment variables.');
+  }
   const authCodeUrlParameters = {
     scopes: config.microsoft.scopes,
     redirectUri: config.microsoft.redirectUri,
@@ -60,6 +85,9 @@ function getAuthUrl() {
 
 // Handle auth callback and get tokens
 async function handleAuthCallback(code) {
+  if (!cca) {
+    throw new Error('Microsoft credentials not configured.');
+  }
   const tokenRequest = {
     code,
     scopes: config.microsoft.scopes,
@@ -81,6 +109,10 @@ async function handleAuthCallback(code) {
 
 // Get valid access token (refresh if needed)
 async function getAccessToken() {
+  if (!cca) {
+    throw new Error('Microsoft credentials not configured.');
+  }
+  
   const tokens = loadTokens();
   
   if (!tokens || !tokens.account) {
@@ -271,6 +303,7 @@ async function getEventsForDate(date) {
 
 module.exports = {
   isAuthenticated,
+  isConfigured,
   getAuthUrl,
   handleAuthCallback,
   getAccessToken,

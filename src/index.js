@@ -124,18 +124,36 @@ app.get('/api/status', async (req, res) => {
 
 // Debug - Show configuration (remove in production if needed)
 app.get('/debug', (req, res) => {
+  const envVars = {
+    BASE_URL: process.env.BASE_URL,
+    MICROSOFT_CLIENT_ID: process.env.MICROSOFT_CLIENT_ID,
+    MICROSOFT_CLIENT_SECRET: process.env.MICROSOFT_CLIENT_SECRET,
+    MICROSOFT_TENANT_ID: process.env.MICROSOFT_TENANT_ID,
+  };
+  
   res.send(`
     <html>
     <head><title>Debug Info</title></head>
     <body style="font-family: monospace; padding: 20px;">
       <h2>Configuration Debug</h2>
+      
+      <h3>Loaded Config Values:</h3>
       <p><strong>BASE_URL:</strong> ${config.server.baseUrl}</p>
       <p><strong>Redirect URI:</strong> ${config.microsoft.redirectUri}</p>
       <p><strong>Client ID:</strong> ${config.microsoft.clientId ? config.microsoft.clientId.substring(0, 8) + '...' : 'NOT SET'}</p>
       <p><strong>Client Secret:</strong> ${config.microsoft.clientSecret ? 'SET (' + config.microsoft.clientSecret.length + ' chars)' : 'NOT SET'}</p>
       <p><strong>Tenant ID:</strong> ${config.microsoft.tenantId || 'NOT SET'}</p>
+      <p><strong>Microsoft Configured:</strong> ${outlook.isConfigured() ? 'YES' : 'NO'}</p>
+      
+      <h3>Raw Environment Variables:</h3>
+      <p><strong>BASE_URL env:</strong> ${envVars.BASE_URL || 'NOT SET'}</p>
+      <p><strong>MICROSOFT_CLIENT_ID env:</strong> ${envVars.MICROSOFT_CLIENT_ID ? envVars.MICROSOFT_CLIENT_ID.substring(0, 8) + '...' : 'NOT SET'}</p>
+      <p><strong>MICROSOFT_CLIENT_SECRET env:</strong> ${envVars.MICROSOFT_CLIENT_SECRET ? 'SET (' + envVars.MICROSOFT_CLIENT_SECRET.length + ' chars)' : 'NOT SET'}</p>
+      <p><strong>MICROSOFT_TENANT_ID env:</strong> ${envVars.MICROSOFT_TENANT_ID || 'NOT SET'}</p>
+      
       <hr>
       <p>Make sure the <strong>Redirect URI</strong> above is added to your Microsoft App Registration under Authentication.</p>
+      <p style="color: red;">If any values show "NOT SET", check your Azure App Service environment variables.</p>
     </body>
     </html>
   `);
