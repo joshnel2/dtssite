@@ -138,6 +138,20 @@ async function getCurrentContext() {
   return context;
 }
 
+// Parse calendar event request from AI response
+function parseCalendarRequest(text) {
+  // Check if the AI response contains a calendar creation request
+  const calendarMatch = text.match(/\[CREATE_EVENT\]([\s\S]*?)\[\/CREATE_EVENT\]/);
+  if (calendarMatch) {
+    try {
+      return JSON.parse(calendarMatch[1]);
+    } catch (e) {
+      console.error('Failed to parse calendar event:', e);
+    }
+  }
+  return null;
+}
+
 // Process user message and generate AI response
 async function processMessage(userMessage) {
   try {
@@ -154,7 +168,13 @@ Current Date/Time: ${new Date().toLocaleString()}
 ${memoryContext}
 ${outlookContext}
 
-Instructions:
+CAPABILITIES:
+- READ emails (you can see and summarize emails)
+- READ calendar (you can see calendar events)
+- CREATE calendar events (you can add new events)
+- You CANNOT send, write, or reply to emails - only read them
+
+INSTRUCTIONS:
 - Answer questions about their emails and calendar based on the data provided
 - Be concise since responses are sent via SMS (keep under 300 characters when possible)
 - Highlight important or urgent items, especially from important senders listed in preferences
@@ -162,7 +182,14 @@ Instructions:
 - For emails, mention sender, subject, and key details
 - For calendar, mention event name, time, and location
 - Be friendly but professional
-- Follow any custom instructions from the user's preferences`;
+- Follow any custom instructions from the user's preferences
+- If user asks to send/write/reply to an email, politely explain you can only read emails, not send them
+
+CREATING CALENDAR EVENTS:
+When the user asks to add something to their calendar, respond with the event details AND include a JSON block like this:
+[CREATE_EVENT]{"subject": "Meeting title", "startDateTime": "2026-02-03T14:00:00", "endDateTime": "2026-02-03T15:00:00", "location": "Office", "body": "Optional notes"}[/CREATE_EVENT]
+
+Use ISO 8601 format for dates. Always confirm what you're adding before adding it.`;
 
     const response = await client.chat.completions.create({
       model: deploymentName,
@@ -174,7 +201,24 @@ Instructions:
       temperature: 0.7,
     });
 
-    return response.choices[0].message.content;
+    let aiResponse = response.choices[0].message.content;
+    
+    // Check if AI wants to create a calendar event
+    const eventRequest = parseCalendarRequest(aiResponse);
+    if (eventRequest) {
+      try {
+        await outlook.createCalendarEvent(eventRequest);
+        // Remove the JSON block from the response shown to user
+        aiResponse = aiResponse.replace(/\[CREATE_EVENT\][\s\S]*?\[\/CREATE_EVENT\]/, '').trim();
+        aiResponse += '\n✓ Event added to your calendar!';
+      } catch (error) {
+        console.error('Failed to create calendar event:', error);
+        aiResponse = aiResponse.replace(/\[CREATE_EVENT\][\s\S]*?\[\/CREATE_EVENT\]/, '').trim();
+        aiResponse += '\n⚠ Failed to add event to calendar.';
+      }
+    }
+
+    return aiResponse;
   } catch (error) {
     console.error('Azure OpenAI Error:', error);
     throw new Error(`AI processing failed: ${error.message}`);

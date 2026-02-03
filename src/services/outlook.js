@@ -301,6 +301,45 @@ async function getEventsForDate(date) {
   return events.value;
 }
 
+// Create a calendar event
+async function createCalendarEvent(eventDetails) {
+  const client = await getGraphClient();
+  
+  const event = {
+    subject: eventDetails.subject || 'New Event',
+    start: {
+      dateTime: eventDetails.startDateTime,
+      timeZone: eventDetails.timeZone || 'UTC',
+    },
+    end: {
+      dateTime: eventDetails.endDateTime,
+      timeZone: eventDetails.timeZone || 'UTC',
+    },
+  };
+  
+  // Add optional fields if provided
+  if (eventDetails.location) {
+    event.location = { displayName: eventDetails.location };
+  }
+  
+  if (eventDetails.body) {
+    event.body = {
+      contentType: 'text',
+      content: eventDetails.body,
+    };
+  }
+  
+  if (eventDetails.isAllDay) {
+    event.isAllDay = true;
+  }
+
+  const result = await client
+    .api('/me/events')
+    .post(event);
+
+  return result;
+}
+
 module.exports = {
   isAuthenticated,
   isConfigured,
@@ -315,5 +354,6 @@ module.exports = {
   getTodayEvents,
   getUpcomingEvents,
   getEventsForDate,
+  createCalendarEvent,
   clearTokens,
 };

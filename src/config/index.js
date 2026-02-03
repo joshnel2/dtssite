@@ -18,7 +18,7 @@ module.exports = {
       'offline_access',
       'User.Read',
       'Mail.Read',
-      'Calendars.Read',
+      'Calendars.ReadWrite',
     ],
   },
 
