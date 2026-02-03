@@ -1,6 +1,59 @@
 const { AzureOpenAI } = require('openai');
+const fs = require('fs');
+const path = require('path');
 const config = require('../config');
 const outlook = require('./outlook');
+
+const MEMORY_FILE = path.join(__dirname, '../../memory.json');
+
+// Load user memory/preferences
+function loadMemory() {
+  try {
+    if (fs.existsSync(MEMORY_FILE)) {
+      return JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf8'));
+    }
+  } catch (error) {
+    console.error('Error loading memory:', error);
+  }
+  return null;
+}
+
+// Format memory for AI context
+function formatMemory() {
+  const memory = loadMemory();
+  if (!memory) return '';
+
+  let memoryText = '\n=== USER PREFERENCES & MEMORY ===\n';
+  
+  if (memory.user_name) {
+    memoryText += `User's name: ${memory.user_name}\n`;
+  }
+  
+  if (memory.preferences) {
+    if (memory.preferences.summary_style) {
+      memoryText += `Preferred summary style: ${memory.preferences.summary_style}\n`;
+    }
+    if (memory.preferences.important_senders && memory.preferences.important_senders.length > 0) {
+      memoryText += `Important senders to highlight: ${memory.preferences.important_senders.join(', ')}\n`;
+    }
+    if (memory.preferences.important_keywords && memory.preferences.important_keywords.length > 0) {
+      memoryText += `Important keywords to watch for: ${memory.preferences.important_keywords.join(', ')}\n`;
+    }
+  }
+  
+  if (memory.notes && memory.notes.length > 0) {
+    memoryText += `\nNotes about user:\n`;
+    memory.notes.forEach(note => {
+      memoryText += `- ${note}\n`;
+    });
+  }
+  
+  if (memory.custom_instructions) {
+    memoryText += `\nCustom instructions: ${memory.custom_instructions}\n`;
+  }
+  
+  return memoryText;
+}
 
 // Initialize Azure OpenAI client
 const client = new AzureOpenAI({
@@ -91,21 +144,25 @@ async function processMessage(userMessage) {
     // Build context from Outlook data
     const outlookContext = await getCurrentContext();
     
+    // Load user memory/preferences
+    const memoryContext = formatMemory();
+    
     const systemPrompt = `You are a helpful AI assistant that helps the user manage their Outlook email and calendar via SMS. 
 You have access to their current email and calendar data provided below.
 
 Current Date/Time: ${new Date().toLocaleString()}
-
+${memoryContext}
 ${outlookContext}
 
 Instructions:
 - Answer questions about their emails and calendar based on the data provided
 - Be concise since responses are sent via SMS (keep under 300 characters when possible)
-- Highlight important or urgent items
+- Highlight important or urgent items, especially from important senders listed in preferences
 - If asked about something not in the data, explain what information you have access to
 - For emails, mention sender, subject, and key details
 - For calendar, mention event name, time, and location
-- Be friendly but professional`;
+- Be friendly but professional
+- Follow any custom instructions from the user's preferences`;
 
     const response = await client.chat.completions.create({
       model: deploymentName,

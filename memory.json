@@ -1,0 +1,22 @@
+{
+  "user_name": "Josh",
+  "preferences": {
+    "summary_style": "brief and to the point",
+    "important_senders": [
+      "boss@company.com",
+      "client@example.com"
+    ],
+    "important_keywords": [
+      "urgent",
+      "deadline",
+      "meeting",
+      "payment"
+    ]
+  },
+  "notes": [
+    "Prefers morning meetings",
+    "Always highlight emails from important_senders",
+    "Summarize long emails in 2-3 sentences"
+  ],
+  "custom_instructions": "When I ask about my day, always mention both emails AND calendar events. If there are meetings, remind me to prepare."
+}
