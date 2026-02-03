@@ -20,11 +20,20 @@ router.post('/webhook', express.urlencoded({ extended: false }), async (req, res
       return res.send(twilioService.generateTwiMLResponse('Unauthorized number.'));
     }
 
+    // Test mode - if message starts with "test", just echo back
+    if (incomingMessage.toLowerCase().startsWith('test')) {
+      console.log('Test mode - echoing back');
+      res.type('text/xml');
+      return res.send(twilioService.generateTwiMLResponse(
+        `✅ SMS is working! You said: "${incomingMessage}"\n\nTwilio connection successful.`
+      ));
+    }
+
     // Check if Microsoft is authenticated
     if (!outlook.isAuthenticated()) {
       res.type('text/xml');
       return res.send(twilioService.generateTwiMLResponse(
-        'Please sign in to Microsoft first. Visit the web dashboard to authenticate.'
+        'Microsoft not connected yet. Text "test" to verify SMS works, or visit the web dashboard to sign in.'
       ));
     }
 
