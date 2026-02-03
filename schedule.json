@@ -1,0 +1,30 @@
+{
+  "enabled": true,
+  "timezone": "America/New_York",
+  
+  "morningSummary": {
+    "enabled": true,
+    "time": "08:00",
+    "message": "Good morning! Here's your daily briefing."
+  },
+  
+  "eveningRecap": {
+    "enabled": false,
+    "time": "18:00",
+    "message": "Here's your evening recap."
+  },
+  
+  "meetingReminders": {
+    "enabled": true,
+    "minutesBefore": 15
+  },
+  
+  "urgentEmailAlerts": {
+    "enabled": true,
+    "checkEveryMinutes": 30,
+    "onlyDuring": {
+      "start": "09:00",
+      "end": "17:00"
+    }
+  }
+}

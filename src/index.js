@@ -7,6 +7,7 @@ const { requireSitePassword, verifySitePassword } = require('./middleware/auth')
 const outlook = require('./services/outlook');
 const azureOpenAI = require('./services/azure-openai');
 const twilioService = require('./services/twilio');
+const scheduler = require('./services/scheduler');
 const smsRoutes = require('./routes/sms');
 
 const app = express();
@@ -199,6 +200,32 @@ app.get('/api/summary', async (req, res) => {
   try {
     const summary = await azureOpenAI.getDailySummary();
     res.json({ success: true, summary });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API - Get schedule
+app.get('/api/schedule', (req, res) => {
+  const schedule = scheduler.loadSchedule();
+  res.json({ success: true, schedule });
+});
+
+// API - Reload schedule (after editing schedule.json)
+app.post('/api/schedule/reload', (req, res) => {
+  try {
+    scheduler.reloadSchedule();
+    res.json({ success: true, message: 'Schedule reloaded' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// API - Send morning summary now (for testing)
+app.post('/api/schedule/test-morning', async (req, res) => {
+  try {
+    await scheduler.sendMorningSummary();
+    res.json({ success: true, message: 'Morning summary sent' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -716,4 +743,7 @@ app.listen(config.server.port, () => {
   } else {
     console.log('✅ Microsoft account connected.');
   }
+  
+  // Start the scheduler for automated updates
+  scheduler.startScheduler();
 });
