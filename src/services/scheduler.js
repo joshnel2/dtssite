@@ -2,9 +2,37 @@ const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
 const twilioService = require('./twilio');
+const telegram = require('./telegram');
 const azureOpenAI = require('./azure-openai');
 const outlook = require('./outlook');
 const config = require('../config');
+
+// Send message via available channel (Telegram or Twilio)
+async function sendNotification(message) {
+  // Try Telegram first (it's free)
+  if (config.telegram.botToken && config.telegram.chatId) {
+    try {
+      await telegram.sendToUser(message);
+      console.log('Notification sent via Telegram');
+      return;
+    } catch (error) {
+      console.error('Telegram notification failed:', error.message);
+    }
+  }
+  
+  // Fall back to Twilio SMS
+  if (config.twilio.accountSid && config.userPhoneNumber) {
+    try {
+      await twilioService.sendToUser(message);
+      console.log('Notification sent via SMS');
+      return;
+    } catch (error) {
+      console.error('SMS notification failed:', error.message);
+    }
+  }
+  
+  console.log('No notification channel available');
+}
 
 const SCHEDULE_FILE = path.join(__dirname, '../../schedule.json');
 
@@ -75,7 +103,7 @@ async function sendMorningSummary() {
     );
     
     const message = `${schedule.morningSummary.message}\n\n${summary}`;
-    await twilioService.sendToUser(message);
+    await sendNotification(message);
     console.log('Morning summary sent');
   } catch (error) {
     console.error('Failed to send morning summary:', error);
@@ -96,7 +124,7 @@ async function sendEveningRecap() {
     );
     
     const message = `${schedule.eveningRecap.message}\n\n${recap}`;
-    await twilioService.sendToUser(message);
+    await sendNotification(message);
     console.log('Evening recap sent');
   } catch (error) {
     console.error('Failed to send evening recap:', error);
@@ -124,7 +152,7 @@ async function checkMeetingReminders() {
       if (minutesUntil > 0 && minutesUntil <= minutesBefore && minutesUntil > minutesBefore - 1) {
         const location = event.location?.displayName ? ` at ${event.location.displayName}` : '';
         const message = `⏰ Reminder: "${event.subject}"${location} starts in ${Math.round(minutesUntil)} minutes!`;
-        await twilioService.sendToUser(message);
+        await sendNotification(message);
         console.log(`Meeting reminder sent for: ${event.subject}`);
       }
     }
@@ -164,7 +192,7 @@ async function checkUrgentEmails() {
       for (const email of urgentEmails) {
         const from = email.from?.emailAddress?.name || email.from?.emailAddress?.address || 'Unknown';
         const message = `🚨 Urgent email from ${from}: "${email.subject}"`;
-        await twilioService.sendToUser(message);
+        await sendNotification(message);
         console.log(`Urgent email alert sent for: ${email.subject}`);
       }
     }

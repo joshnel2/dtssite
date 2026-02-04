@@ -22,15 +22,21 @@ module.exports = {
     ],
   },
 
-  // Twilio
+  // Twilio (optional - for SMS)
   twilio: {
     accountSid: process.env.TWILIO_ACCOUNT_SID,
     authToken: process.env.TWILIO_AUTH_TOKEN,
     phoneNumber: process.env.TWILIO_PHONE_NUMBER,
   },
 
-  // User phone number
+  // User phone number (for Twilio)
   userPhoneNumber: process.env.USER_PHONE_NUMBER,
+
+  // Telegram (free alternative to SMS)
+  telegram: {
+    botToken: process.env.TELEGRAM_BOT_TOKEN,
+    chatId: process.env.TELEGRAM_CHAT_ID,
+  },
 
   // Server
   server: {

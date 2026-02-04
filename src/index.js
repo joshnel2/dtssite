@@ -7,6 +7,7 @@ const { requireSitePassword, verifySitePassword } = require('./middleware/auth')
 const outlook = require('./services/outlook');
 const azureOpenAI = require('./services/azure-openai');
 const twilioService = require('./services/twilio');
+const telegram = require('./services/telegram');
 const scheduler = require('./services/scheduler');
 const smsRoutes = require('./routes/sms');
 
@@ -743,6 +744,9 @@ app.listen(config.server.port, () => {
   } else {
     console.log('✅ Microsoft account connected.');
   }
+  
+  // Initialize Telegram bot
+  telegram.initBot();
   
   // Start the scheduler for automated updates
   scheduler.startScheduler();
